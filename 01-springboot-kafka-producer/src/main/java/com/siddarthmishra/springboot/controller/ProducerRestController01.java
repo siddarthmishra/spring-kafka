@@ -1,32 +1,26 @@
 package com.siddarthmishra.springboot.controller;
 
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.siddarthmishra.springboot.constant.KafkaProducerConstants;
+import com.siddarthmishra.springboot.service.ProducerService01;
 
 @RestController
 @RequestMapping("kafka/producer/01")
 public class ProducerRestController01 {
 
-	private KafkaTemplate<String, String> kafkaTemplate;
+	private ProducerService01 producerService01;
 
-	public ProducerRestController01(@Qualifier("kafkaTemplate01") KafkaTemplate<String, String> kafkaTemplate) {
-		this.kafkaTemplate = kafkaTemplate;
+	public ProducerRestController01(ProducerService01 producerService01) {
+		this.producerService01 = producerService01;
 	}
 
 	@PostMapping("simple")
 	public ResponseEntity<String> simpleProducer(@RequestBody String request) {
-		String uuid = java.util.UUID.randomUUID().toString();
-		String value = request + " - " + uuid;
-		var record = new ProducerRecord<String, String>(KafkaProducerConstants.NEW_TOPIC_01, uuid, value);
-		kafkaTemplate.send(record);
+		producerService01.send01(request);
 		return ResponseEntity.accepted().build();
 	}
 

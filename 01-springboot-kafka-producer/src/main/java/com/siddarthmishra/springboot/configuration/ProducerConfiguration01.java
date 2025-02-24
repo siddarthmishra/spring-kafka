@@ -6,6 +6,7 @@ import java.util.Map;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -43,7 +44,7 @@ public class ProducerConfiguration01 {
 		 */
 		// return
 		// TopicBuilder.name(KafkaConstants.NEW_TOPIC_01).partitions(2).replicas(1).build();
-		return TopicBuilder.name(KafkaProducerConstants.NEW_TOPIC_01).build();
+		return TopicBuilder.name(KafkaProducerConstants.SB_KAFKA_TOPIC_01).build();
 	}
 
 	@Bean("producerConfig01")
@@ -66,6 +67,7 @@ public class ProducerConfiguration01 {
 	KafkaTemplate<String, String> kafkaTemplate01() {
 		KafkaTemplate<String, String> kafkaTemplate = new KafkaTemplate<>(producerFactory01());
 		kafkaTemplate.setProducerListener(customProducerListener01());
+		kafkaTemplate.setProducerInterceptor(producerInterceptor01());
 		return kafkaTemplate;
 	}
 
@@ -88,6 +90,41 @@ public class ProducerConfiguration01 {
 						producerRecord.value(), recordMetadata.topic(), recordMetadata.partition(),
 						recordMetadata.offset(), exception.toString());
 				System.out.println(failed_msg);
+			}
+		};
+	}
+
+	@Bean
+	ProducerInterceptor<String, String> producerInterceptor01() {
+		return new ProducerInterceptor<String, String>() {
+
+			@Override
+			public void configure(Map<String, ?> configs) {
+				System.out.println("ProducerInterceptor.configure() called");
+			}
+
+			@Override
+			public ProducerRecord<String, String> onSend(ProducerRecord<String, String> record) {
+				System.out.println("ProducerInterceptor.onSend() called");
+				String originalValue = record.value();
+				if (originalValue.contains(KafkaProducerConstants.FAIL_IT_1_CONST)) {
+					originalValue = originalValue.replaceAll(KafkaProducerConstants.FAIL_IT_1_REGEX, "");
+				} else if (originalValue.contains(KafkaProducerConstants.FAIL_IT_CONST)) {
+					originalValue = originalValue.replaceAll(KafkaProducerConstants.FAIL_IT_REGEX,
+							KafkaProducerConstants.FAIL_IT_1_CONST);
+				}
+				return new ProducerRecord<String, String>(record.topic(), record.partition(), record.timestamp(),
+						record.key(), originalValue, record.headers());
+			}
+
+			@Override
+			public void onAcknowledgement(RecordMetadata metadata, Exception exception) {
+				System.out.println("ProducerInterceptor.onAcknowledgement() called");
+			}
+
+			@Override
+			public void close() {
+				System.out.println("ProducerInterceptor.close() called");
 			}
 		};
 	}
