@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.siddarthmishra.springboot.dto.ProducerMessageDTO;
 import com.siddarthmishra.springboot.service.ProducerService01;
 
 @RestController
@@ -19,8 +20,8 @@ public class ProducerRestController01 {
 	}
 
 	@PostMapping("simple")
-	public ResponseEntity<String> simpleProducer(@RequestBody String request) {
-		producerService01.send01(request);
+	public ResponseEntity<String> simpleProducer(@RequestBody ProducerMessageDTO producerMessageDTO) {
+		producerService01.send01(producerMessageDTO);
 		return ResponseEntity.accepted().build();
 	}
 

@@ -8,6 +8,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import com.siddarthmishra.springboot.constant.KafkaProducerConstants;
+import com.siddarthmishra.springboot.dto.ProducerMessageDTO;
 
 @Service
 public class ProducerService01 {
@@ -18,10 +19,13 @@ public class ProducerService01 {
 		this.kafkaTemplate = kafkaTemplate;
 	}
 
-	public void send01(String request) {
-		String uuid = UUID.randomUUID().toString();
-		String value = request + " - " + uuid;
-		var record = new ProducerRecord<String, String>(KafkaProducerConstants.SB_KAFKA_TOPIC_01, uuid, value);
+	public void send01(ProducerMessageDTO producerMessageDTO) {
+		String key = producerMessageDTO.key();
+		if (key == null || key.isBlank() || key.isEmpty()) {
+			key = UUID.randomUUID().toString();
+		}
+		String value = producerMessageDTO.message() + " - " + key;
+		var record = new ProducerRecord<String, String>(KafkaProducerConstants.SB_KAFKA_TOPIC_01, key, value);
 		kafkaTemplate.send(record);
 	}
 }
