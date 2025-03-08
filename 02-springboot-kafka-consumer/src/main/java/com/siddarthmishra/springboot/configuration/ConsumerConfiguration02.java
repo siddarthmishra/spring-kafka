@@ -2,12 +2,12 @@ package com.siddarthmishra.springboot.configuration;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -17,44 +17,43 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.ContainerProperties.AckMode;
 import org.springframework.kafka.listener.RecordInterceptor;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 import com.siddarthmishra.springboot.constant.KafkaConsumerConstants;
+import com.siddarthmishra.springboot.dto.UserDetailsDTO;
 
-@Order(1)
+@Order(2)
 @Configuration
-public class ConsumerConfiguration01 {
+public class ConsumerConfiguration02 {
 
-	@Bean("containerFactory01")
-	ConcurrentKafkaListenerContainerFactory<String, String> containerFactory01(
-			@Qualifier("comsumerFactory01") ConsumerFactory<String, String> consumerFactory) {
-		var containerFactory = new ConcurrentKafkaListenerContainerFactory<String, String>();
-		containerFactory.setConsumerFactory(consumerFactory);
-		containerFactory.setRecordInterceptor(recordInterceptor01());
-		/*
-		 * Here, concurrency property creates two KafkaMessageListenerContainer
-		 * instances
-		 */
-		// containerFactory.setConcurrency(2);
-		updateContainerProperties(containerFactory.getContainerProperties());
-		return containerFactory;
+	@Bean("consumerConfig02")
+	Map<String, Object> consumerConfig02() {
+		Map<String, Object> config = new HashMap<>();
+		config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConsumerConstants.BOOTSTRAP_SERVERS_CONFIG);
+		config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+		config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+		config.put(ConsumerConfig.ALLOW_AUTO_CREATE_TOPICS_CONFIG, false);
+		config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
+		config.put(ConsumerConfig.CLIENT_ID_CONFIG, "02-springboot-kafka-consumer-consumer02");
+		String trustedPackages = KafkaConsumerConstants.TRUSTED_PACKAGES_LIST.stream()
+				.collect(Collectors.joining(KafkaConsumerConstants.COMMA));
+		config.put(JsonDeserializer.TRUSTED_PACKAGES, trustedPackages);
+		return config;
 	}
 
-	@Bean("comsumerFactory01")
-	ConsumerFactory<String, String> comsumerFactory01() {
-		var consumerFactory = new DefaultKafkaConsumerFactory<String, String>(consumerConfig01());
+	@Bean("consumerFactory02")
+	ConsumerFactory<String, UserDetailsDTO> consumerFactory02() {
+		var consumerFactory = new DefaultKafkaConsumerFactory<String, UserDetailsDTO>(consumerConfig02());
 		return consumerFactory;
 	}
 
-	@Bean("consumerConfig01")
-	Map<String, Object> consumerConfig01() {
-		Map<String, Object> config = new HashMap<>();
-		config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConsumerConstants.BOOTSTRAP_SERVERS_CONFIG);
-		config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-		config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-		config.put(ConsumerConfig.ALLOW_AUTO_CREATE_TOPICS_CONFIG, false);
-		config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
-		config.put(ConsumerConfig.CLIENT_ID_CONFIG, "02-springboot-kafka-consumer-consumer01");
-		return config;
+	@Bean("containerFactory02")
+	ConcurrentKafkaListenerContainerFactory<String, UserDetailsDTO> containerFactory02() {
+		var containerFactory = new ConcurrentKafkaListenerContainerFactory<String, UserDetailsDTO>();
+		containerFactory.setConsumerFactory(consumerFactory02());
+		containerFactory.setRecordInterceptor(recordInterceptor02());
+		updateContainerProperties(containerFactory.getContainerProperties());
+		return containerFactory;
 	}
 
 	void updateContainerProperties(ContainerProperties containerProperties) {
@@ -82,29 +81,31 @@ public class ConsumerConfiguration01 {
 		});
 	}
 
-	@Bean
-	RecordInterceptor<String, String> recordInterceptor01() {
-		return new RecordInterceptor<String, String>() {
+	@Bean("recordInterceptor02")
+	RecordInterceptor<String, UserDetailsDTO> recordInterceptor02() {
+		return new RecordInterceptor<String, UserDetailsDTO>() {
 
 			@Override
-			public void success(ConsumerRecord<String, String> record, Consumer<String, String> consumer) {
+			public void success(ConsumerRecord<String, UserDetailsDTO> record,
+					Consumer<String, UserDetailsDTO> consumer) {
 				System.out.println("Inside RecordInterceptor.success");
 			}
 
 			@Override
-			public void failure(ConsumerRecord<String, String> record, Exception exception,
-					Consumer<String, String> consumer) {
+			public void failure(ConsumerRecord<String, UserDetailsDTO> record, Exception exception,
+					Consumer<String, UserDetailsDTO> consumer) {
 				System.out.println("Inside RecordInterceptor.failure - " + exception.toString());
 			}
 
 			@Override
-			public void afterRecord(ConsumerRecord<String, String> record, Consumer<String, String> consumer) {
+			public void afterRecord(ConsumerRecord<String, UserDetailsDTO> record,
+					Consumer<String, UserDetailsDTO> consumer) {
 				System.out.println("Inside RecordInterceptor.afterRecord");
 			}
 
 			@Override
-			public ConsumerRecord<String, String> intercept(ConsumerRecord<String, String> record,
-					Consumer<String, String> consumer) {
+			public ConsumerRecord<String, UserDetailsDTO> intercept(ConsumerRecord<String, UserDetailsDTO> record,
+					Consumer<String, UserDetailsDTO> consumer) {
 				System.out.println("Inside RecordInterceptor.intercept");
 				return record;
 				// return null; // If the interceptor returns null, the listener is not called
