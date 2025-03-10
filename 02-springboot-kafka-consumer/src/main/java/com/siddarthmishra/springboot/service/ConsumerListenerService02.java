@@ -42,12 +42,12 @@ public class ConsumerListenerService02 {
 				savedUser = userDetailsRepository.save(user);
 				System.out.println("Saved - " + savedUser);
 			} else {
-				// throw exception
-				System.out.println("User is already present");
+				String message = String.format(KafkaConsumerConstants.EMAIL_ALREADY_PRESENT_FORMAT, user.getEmailId());
+				throw new RuntimeException(message);
 			}
 		} else {
-			// throw exception
-			System.out.println("Errors - " + violations);
+			String message = String.format(KafkaConsumerConstants.DATA_VIOLATIONS_FORMAT, violations.toString());
+			throw new IllegalArgumentException(message);
 		}
 	}
 

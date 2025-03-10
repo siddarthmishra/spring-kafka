@@ -2,22 +2,30 @@ package com.siddarthmishra.springboot.configuration;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.ContainerProperties.AckMode;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.listener.RecordInterceptor;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.util.backoff.FixedBackOff;
 
 import com.siddarthmishra.springboot.constant.KafkaConsumerConstants;
 import com.siddarthmishra.springboot.dto.UserDetailsDTO;
@@ -48,12 +56,58 @@ public class ConsumerConfiguration02 {
 	}
 
 	@Bean("containerFactory02")
-	ConcurrentKafkaListenerContainerFactory<String, UserDetailsDTO> containerFactory02() {
+	ConcurrentKafkaListenerContainerFactory<String, UserDetailsDTO> containerFactory02(
+			@Qualifier("defaultKafkaTemplate01") KafkaTemplate<Object, Object> template) {
 		var containerFactory = new ConcurrentKafkaListenerContainerFactory<String, UserDetailsDTO>();
 		containerFactory.setConsumerFactory(consumerFactory02());
 		containerFactory.setRecordInterceptor(recordInterceptor02());
+		// containerFactory.setCommonErrorHandler(defaultErrorHandler02_01());
+		containerFactory.setCommonErrorHandler(deadLetterPublishingRecoverer02_01(template));
 		updateContainerProperties(containerFactory.getContainerProperties());
 		return containerFactory;
+	}
+
+	// https://docs.spring.io/spring-kafka/reference/kafka/annotation-error-handling.html#default-eh
+	@SuppressWarnings("unused")
+	private CommonErrorHandler defaultErrorHandler02_01() {
+		/*
+		 * retries the failed consumer events for 3 times (0,1,2) at interval of 5
+		 * seconds (default interval). Failures are simply logged after retries are
+		 * exhausted.
+		 */
+		var defaultErrorHandler = new DefaultErrorHandler(new FixedBackOff(FixedBackOff.DEFAULT_INTERVAL, 2));
+		/*
+		 * since some exceptions are unlikely to be resolved on a retried delivery, such
+		 * exceptions can be excluded from retries by adding such exceptions as
+		 * "Not Retryable Exceptions"
+		 */
+		defaultErrorHandler.addNotRetryableExceptions(IllegalArgumentException.class);
+		return defaultErrorHandler;
+	}
+
+	// https://docs.spring.io/spring-kafka/reference/kafka/annotation-error-handling.html#dead-letters
+	/*
+	 * The framework provides the DeadLetterPublishingRecoverer, which publishes the
+	 * failed message to another topic. By default, the dead-letter record is sent
+	 * to a topic named <originalTopic>-dlt (the original topic name suffixed with
+	 * -dlt) and to the same partition as the original record. Therefore, when you
+	 * use the default resolver, the dead-letter topic must have at least as many
+	 * partitions as the original topic. We can override the default behavior of
+	 * <originalTopic>-dlt by providing 'destinationResolver' through constructor.
+	 */
+	private CommonErrorHandler deadLetterPublishingRecoverer02_01(KafkaTemplate<Object, Object> template) {
+		/*
+		 * destinationResolver copied as is from DeadLetterPublishingRecoverer
+		 * DEFAULT_DESTINATION_RESOLVER
+		 */
+		BiFunction<ConsumerRecord<?, ?>, Exception, TopicPartition> destinationResolver = (cr,
+				e) -> new TopicPartition(cr.topic() + "-dlt", cr.partition());
+		var deadLetterPublishingRecoverer = new DeadLetterPublishingRecoverer(template, destinationResolver);
+		var fixedBackOff = new FixedBackOff(FixedBackOff.DEFAULT_INTERVAL, 2);
+		// var defaultErrorHandler = new DefaultErrorHandler(fixedBackOff);
+		var defaultErrorHandler = new DefaultErrorHandler(deadLetterPublishingRecoverer, fixedBackOff);
+		defaultErrorHandler.addNotRetryableExceptions(IllegalArgumentException.class);
+		return defaultErrorHandler;
 	}
 
 	void updateContainerProperties(ContainerProperties containerProperties) {

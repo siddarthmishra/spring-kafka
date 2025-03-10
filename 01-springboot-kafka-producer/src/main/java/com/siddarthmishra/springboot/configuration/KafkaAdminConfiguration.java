@@ -42,4 +42,9 @@ public class KafkaAdminConfiguration {
 	NewTopic topic2() {
 		return TopicBuilder.name(KafkaProducerConstants.SB_KAFKA_TOPIC_02).build();
 	}
+
+	@Bean("sb-kafka-topic-02-dlt")
+	NewTopic topic2dlt() {
+		return TopicBuilder.name(KafkaProducerConstants.SB_KAFKA_TOPIC_02_DLT).build();
+	}
 }
