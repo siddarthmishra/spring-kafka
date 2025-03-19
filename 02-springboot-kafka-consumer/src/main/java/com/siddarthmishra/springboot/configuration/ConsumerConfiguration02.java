@@ -15,6 +15,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.KafkaListenerEndpoint;
+import org.springframework.kafka.config.MethodKafkaListenerEndpoint;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -24,11 +26,15 @@ import org.springframework.kafka.listener.ContainerProperties.AckMode;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.listener.RecordInterceptor;
+import org.springframework.kafka.support.LogIfLevelEnabled.Level;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.messaging.handler.annotation.support.DefaultMessageHandlerMethodFactory;
 import org.springframework.util.backoff.FixedBackOff;
 
 import com.siddarthmishra.springboot.constant.KafkaConsumerConstants;
 import com.siddarthmishra.springboot.dto.UserDetailsDTO;
+import com.siddarthmishra.springboot.messagelistener.ConsumerMessageListener02;
+import com.siddarthmishra.springboot.service.ConsumerListenerService02;
 
 @Order(2)
 @Configuration
@@ -63,6 +69,7 @@ public class ConsumerConfiguration02 {
 		containerFactory.setRecordInterceptor(recordInterceptor02());
 		// containerFactory.setCommonErrorHandler(defaultErrorHandler02_01());
 		containerFactory.setCommonErrorHandler(deadLetterPublishingRecoverer02_01(template));
+		containerFactory.setMissingTopicsFatal(true);
 		updateContainerProperties(containerFactory.getContainerProperties());
 		return containerFactory;
 	}
@@ -127,12 +134,13 @@ public class ConsumerConfiguration02 {
 		 */
 		containerProperties.setCommitCallback((offsets, exception) -> {
 			if (exception != null) {
-				System.out.println("Exception in Commit Callback");
+				System.out.println("ConsumerConfiguration02 - Exception in Commit Callback");
 				exception.printStackTrace();
 			} else {
-				System.out.println("SUCCESS - Commit Callback : " + offsets);
+				System.out.println("ConsumerConfiguration02 - SUCCESS - Commit Callback : " + offsets);
 			}
 		});
+		containerProperties.setCommitLogLevel(Level.INFO);
 	}
 
 	@Bean("recordInterceptor02")
@@ -142,29 +150,55 @@ public class ConsumerConfiguration02 {
 			@Override
 			public void success(ConsumerRecord<String, UserDetailsDTO> record,
 					Consumer<String, UserDetailsDTO> consumer) {
-				System.out.println("Inside RecordInterceptor.success");
+				System.out.println("Inside ConsumerConfiguration02 RecordInterceptor.success");
 			}
 
 			@Override
 			public void failure(ConsumerRecord<String, UserDetailsDTO> record, Exception exception,
 					Consumer<String, UserDetailsDTO> consumer) {
-				System.out.println("Inside RecordInterceptor.failure - " + exception.toString());
+				System.out.println("Inside ConsumerConfiguration02 RecordInterceptor.failure - " + exception.toString());
 			}
 
 			@Override
 			public void afterRecord(ConsumerRecord<String, UserDetailsDTO> record,
 					Consumer<String, UserDetailsDTO> consumer) {
-				System.out.println("Inside RecordInterceptor.afterRecord");
+				System.out.println("Inside ConsumerConfiguration02 RecordInterceptor.afterRecord");
 			}
 
 			@Override
 			public ConsumerRecord<String, UserDetailsDTO> intercept(ConsumerRecord<String, UserDetailsDTO> record,
 					Consumer<String, UserDetailsDTO> consumer) {
-				System.out.println("Inside RecordInterceptor.intercept");
+				System.out.println("Inside ConsumerConfiguration02 RecordInterceptor.intercept");
 				return record;
 				// return null; // If the interceptor returns null, the listener is not called
 			}
 
 		};
+	}
+
+	@Bean("consumerMessageListener02")
+	ConsumerMessageListener02 consumerMessageListener02(ConsumerListenerService02 service) {
+		return new ConsumerMessageListener02(service);
+	}
+
+	@Bean("kafkaListenerEndpoint02")
+	KafkaListenerEndpoint kafkaListenerEndpoint02(
+			@Qualifier("consumerListenerService02") ConsumerListenerService02 consumerListenerService02) {
+		MethodKafkaListenerEndpoint<String, UserDetailsDTO> methodKafkaListenerEndpoint = new MethodKafkaListenerEndpoint<>();
+		methodKafkaListenerEndpoint.setAutoStartup(true);
+		methodKafkaListenerEndpoint.setTopics(KafkaConsumerConstants.SB_KAFKA_TOPIC_02);
+		methodKafkaListenerEndpoint.setId(KafkaConsumerConstants.KAFKA_LISTENER_02);
+		methodKafkaListenerEndpoint.setGroupId(KafkaConsumerConstants.GRP_CONSUMER_LISTENER_02);
+		methodKafkaListenerEndpoint.setMessageHandlerMethodFactory(new DefaultMessageHandlerMethodFactory());
+		methodKafkaListenerEndpoint.setBean(consumerMessageListener02(consumerListenerService02));
+		try {
+			methodKafkaListenerEndpoint
+					.setMethod(ConsumerMessageListener02.class.getMethod("onMessage", ConsumerRecord.class));
+		} catch (NoSuchMethodException e) {
+			throw new RuntimeException("Attempt to call a non-existent method " + e);
+		} catch (SecurityException e) {
+			throw e;
+		}
+		return methodKafkaListenerEndpoint;
 	}
 }

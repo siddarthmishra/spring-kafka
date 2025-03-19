@@ -16,4 +16,6 @@ public interface KafkaConsumerConstants {
 	public static final String DATA_VIOLATIONS_FORMAT = "Data violations - %s";
 	public static final String SB_KAFKA_TOPIC_02_DLT = "sb-kafka-topic-02-dlt";
 	public static final String CONSUMER_RECEIVED_FORMAT = "Received - Key=%s ; Value=%s ; Topic=%s ; Partition=%s ; Offset=%s";
+	public static final String KAFKA_LISTENER_02 = "kafkaListener02";
+	public static final String GRP_CONSUMER_LISTENER_02 = "groupConsumerListener02";
 }

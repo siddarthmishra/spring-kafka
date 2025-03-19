@@ -3,7 +3,6 @@ package com.siddarthmishra.springboot.service;
 import java.util.Optional;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import com.siddarthmishra.springboot.component.ObjectsValidator;
@@ -28,11 +27,9 @@ public class ConsumerListenerService02 {
 		this.userValidator = userValidator;
 	}
 
-	@KafkaListener(id = "kafkaListener02", containerFactory = "containerFactory02", topics = {
-			KafkaConsumerConstants.SB_KAFKA_TOPIC_02 }, groupId = "groupConsumerListener02")
 	public void saveUserDetails(ConsumerRecord<String, UserDetailsDTO> record) {
 		User savedUser;
-		System.out.println("Received : " + record.toString());
+		System.out.println("Inside ConsumerListenerService02.saveUserDetails - " + record);
 		UserDetailsDTO userDTO = record.value();
 		User user = new User(userDTO.getEmailId(), userDTO.getFirstName(), userDTO.getLastName());
 		var violations = userValidator.validate(user);

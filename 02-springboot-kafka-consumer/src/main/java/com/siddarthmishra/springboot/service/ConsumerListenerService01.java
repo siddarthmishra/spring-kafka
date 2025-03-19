@@ -12,6 +12,6 @@ public class ConsumerListenerService01 {
 	@KafkaListener(id = "kafkaListener01", containerFactory = "containerFactory01", topics = {
 			KafkaConsumerConstants.SB_KAFKA_TOPIC_01 }, groupId = "groupConsumerListener01")
 	public void consumerListener01(ConsumerRecord<String, String> record) {
-		System.out.println("Received : " + record.toString());
+		System.out.println("Inside ConsumerListenerService01.consumerListener01 : " + record.toString());
 	}
 }

@@ -64,10 +64,10 @@ public class DefaultConsumerConfiguration {
 		 */
 		containerProperties.setCommitCallback((offsets, exception) -> {
 			if (exception != null) {
-				System.out.println("Exception in Commit Callback");
+				System.out.println("DefaultConsumerConfiguration - Exception in Commit Callback");
 				exception.printStackTrace();
 			} else {
-				System.out.println("SUCCESS - Commit Callback : " + offsets);
+				System.out.println("DefaultConsumerConfiguration - SUCCESS - Commit Callback : " + offsets);
 			}
 		});
 	}

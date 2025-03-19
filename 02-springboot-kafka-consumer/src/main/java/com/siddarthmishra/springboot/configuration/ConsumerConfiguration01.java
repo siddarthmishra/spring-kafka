@@ -74,10 +74,10 @@ public class ConsumerConfiguration01 {
 		 */
 		containerProperties.setCommitCallback((offsets, exception) -> {
 			if (exception != null) {
-				System.out.println("Exception in Commit Callback");
+				System.out.println("ConsumerConfiguration01 - Exception in Commit Callback");
 				exception.printStackTrace();
 			} else {
-				System.out.println("SUCCESS - Commit Callback : " + offsets);
+				System.out.println("ConsumerConfiguration01 - SUCCESS - Commit Callback : " + offsets);
 			}
 		});
 	}
@@ -88,24 +88,24 @@ public class ConsumerConfiguration01 {
 
 			@Override
 			public void success(ConsumerRecord<String, String> record, Consumer<String, String> consumer) {
-				System.out.println("Inside RecordInterceptor.success");
+				System.out.println("Inside ConsumerConfiguration01 RecordInterceptor.success");
 			}
 
 			@Override
 			public void failure(ConsumerRecord<String, String> record, Exception exception,
 					Consumer<String, String> consumer) {
-				System.out.println("Inside RecordInterceptor.failure - " + exception.toString());
+				System.out.println("Inside ConsumerConfiguration01 RecordInterceptor.failure - " + exception.toString());
 			}
 
 			@Override
 			public void afterRecord(ConsumerRecord<String, String> record, Consumer<String, String> consumer) {
-				System.out.println("Inside RecordInterceptor.afterRecord");
+				System.out.println("Inside ConsumerConfiguration01 RecordInterceptor.afterRecord");
 			}
 
 			@Override
 			public ConsumerRecord<String, String> intercept(ConsumerRecord<String, String> record,
 					Consumer<String, String> consumer) {
-				System.out.println("Inside RecordInterceptor.intercept");
+				System.out.println("Inside ConsumerConfiguration01 RecordInterceptor.intercept");
 				return record;
 				// return null; // If the interceptor returns null, the listener is not called
 			}
